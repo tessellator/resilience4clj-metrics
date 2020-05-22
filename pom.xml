@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>tessellator</groupId>
   <artifactId>resilience4clj-metrics</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <name>resilience4clj-metrics</name>
   <description>A small Clojure wrapper around the resilience4j metrics module</description>
   <licenses>
@@ -15,7 +15,7 @@
   <scm>
     <connection>scm:git:git://github.com/tessellator/resilience4clj-metrics.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/tessellator/resilience4clj-metrics.git</developerConnection>
-    <tag>c8c483d23ea6b6b520fa89cf0c3c6257bcfbbdbd</tag>
+    <tag>6044ada461179557b501060ccdad5fc832ec6c8c</tag>
     <url>https://github.com/tessellator/resilience4clj-metrics</url>
   </scm>
   <dependencies>
