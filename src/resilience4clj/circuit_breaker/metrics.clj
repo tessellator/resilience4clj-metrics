@@ -16,6 +16,44 @@
 
 (set! *warn-on-reflection* true)
 
+;; -----------------------------------------------------------------------------
+;; unregister
+
+(defn- new-metric-filter [& parts]
+  (let [start (str/join "." parts)]
+   (reify MetricFilter
+     (matches [_this name _metric]
+       (str/starts-with? name start)))))
+
+(defn- unregister-circuit-breaker
+  [^CircuitBreaker circuit-breaker prefix ^MetricRegistry metric-registry]
+  (let [^MetricFilter metric-filter (new-metric-filter prefix (.getName circuit-breaker))]
+    (.removeMatching metric-registry metric-filter)))
+
+(defmulti ^:private unregister (fn [obj _ _] (class obj)))
+
+(defmethod unregister CircuitBreaker
+  [^CircuitBreaker circuit-breaker prefix ^MetricRegistry metric-registry]
+  (unregister-circuit-breaker circuit-breaker prefix metric-registry))
+
+(defmethod unregister CircuitBreakerRegistry
+  [^CircuitBreakerRegistry registry prefix ^MetricRegistry metric-registry]
+  (doall (map #(unregister-circuit-breaker % prefix metric-registry)
+              (.getAllCircuitBreakers registry))))
+
+(defn unregister!
+  ([circuit-breaker-or-registry]
+   (unregister! circuit-breaker-or-registry {}))
+  ([circuit-breaker-or-registry opts]
+   (let [{:keys [prefix metric-registry]
+          :or {prefix MetricNames/DEFAULT_PREFIX
+               metric-registry m/default-registry}} opts]
+     (unregister circuit-breaker-or-registry prefix metric-registry))
+   nil))
+
+;; -----------------------------------------------------------------------------
+;; register
+
 (defmulti ^:private register (fn [obj _ _] (class obj)))
 
 (defn- ^String metric-name [part & parts]
@@ -74,36 +112,5 @@
    (let [{:keys [prefix metric-registry]
           :or {prefix MetricNames/DEFAULT_PREFIX
                metric-registry m/default-registry}} opts]
+     (unregister circuit-breaker-or-registry prefix metric-registry)
      (register circuit-breaker-or-registry prefix metric-registry))))
-
-(defn- new-metric-filter [& parts]
-  (let [start (str/join "." parts)]
-   (reify MetricFilter
-     (matches [_this name _metric]
-       (str/starts-with? name start)))))
-
-(defn- unregister-circuit-breaker
-  [^CircuitBreaker circuit-breaker prefix ^MetricRegistry metric-registry]
-  (let [^MetricFilter metric-filter (new-metric-filter prefix (.getName circuit-breaker))]
-    (.removeMatching metric-registry metric-filter)))
-
-(defmulti ^:private unregister (fn [obj _ _] (class obj)))
-
-(defmethod unregister CircuitBreaker
-  [^CircuitBreaker circuit-breaker prefix ^MetricRegistry metric-registry]
-  (unregister-circuit-breaker circuit-breaker prefix metric-registry))
-
-(defmethod unregister CircuitBreakerRegistry
-  [^CircuitBreakerRegistry registry prefix ^MetricRegistry metric-registry]
-  (doall (map #(unregister-circuit-breaker % prefix metric-registry)
-              (.getAllCircuitBreakers registry))))
-
-(defn unregister!
-  ([circuit-breaker-or-registry]
-   (unregister! circuit-breaker-or-registry {}))
-  ([circuit-breaker-or-registry opts]
-   (let [{:keys [prefix metric-registry]
-          :or {prefix MetricNames/DEFAULT_PREFIX
-               metric-registry m/default-registry}} opts]
-     (unregister circuit-breaker-or-registry prefix metric-registry))
-   nil))
